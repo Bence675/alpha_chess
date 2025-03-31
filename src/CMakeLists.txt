@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_subdirectory(logger)
 add_subdirectory(model)
 add_subdirectory(MCTS)
+add_subdirectory(trainer)
 add_subdirectory(utils)
 
 add_executable(
@@ -21,6 +22,7 @@ target_link_libraries(
     logger
     model
     MCTS
+    trainer
     utils
     chess
     ${TORCH_LIBRARIES}

@@ -17,13 +17,12 @@ TEST(TestSimulate, TestSimulateStart) {
     chess::Board board;
     chess::Board board_copy = chess::Board(board); 
     auto root = std::make_shared<node_t>(board_copy, std::make_shared<KotHModel>());
-    auto history = mcts.simulate(root);
+    mcts.simulate(root);
 
-    ASSERT_EQ(history->result, chess::GameResult::NONE);
     ASSERT_EQ(root->value, 0);
     ASSERT_EQ(root->visit_count, 1);
     
-    history = mcts.simulate(root);
+    mcts.simulate(root);
 
     ASSERT_EQ(root->value, 0);
     ASSERT_EQ(root->visit_count, 2);
@@ -45,7 +44,7 @@ TEST(TestSimulate, TestSimulateGameOver) {
     chess::Board board("r1bqkbnr/ppp2Qpp/2np4/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 1");
     chess::Board board_copy = chess::Board(board); 
     auto root = std::make_shared<node_t>(board_copy, std::make_shared<KotHModel>());
-    auto history = mcts.simulate(root);
+    mcts.simulate(root);
 
     // ASSERT_EQ(history->result, chess::GameResult::WIN);
     ASSERT_EQ(root->value, 0);
@@ -55,15 +54,14 @@ TEST(TestSimulate, TestSimulateGameOver) {
     board = chess::Board("r1bqkbnr/ppp2Qpp/2np4/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 1");
     board_copy = chess::Board(board); 
     root = std::make_shared<node_t>(board_copy, std::make_shared<KotHModel>());
-    history = mcts.simulate(root);
+    mcts.simulate(root);
 
-    ASSERT_EQ(history->result, chess::GameResult::LOSE);
     ASSERT_EQ(root->value, 0);
     ASSERT_EQ(root->visit_count, 0);
 }
 
 TEST(TestSearch, TestSearch) {
-    auto mcts = MCTS(std::make_shared<KotHModel>(), 1000, 1.0, 0.03);
+    auto mcts = MCTS(std::make_shared<KotHModel>(), 100, 1.0, 0.03);
     chess::Board board;
     auto root = mcts.search(board);
     

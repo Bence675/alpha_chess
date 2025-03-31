@@ -66,13 +66,12 @@ protected:
 };
 
 
-class ConvModel : Model
-{
+class ConvModel : public Model {
 public:
-    ConvModel(int64_t num_actions);
-    virtual std::tuple<torch::Tensor, torch::Tensor> forward(torch::Tensor x);
+    ConvModel(int num_actions);
     
 private:
+    virtual std::tuple<torch::Tensor, torch::Tensor> _forward(torch::Tensor x);
     conv_block_t conv_block;
     policy_head_t policy_head;
     value_head_t value_head;

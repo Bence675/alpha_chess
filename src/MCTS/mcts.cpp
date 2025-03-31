@@ -34,17 +34,17 @@ std::shared_ptr<node_t> MCTS::search(const chess::Board& board)
     return root;
 }
 
-std::shared_ptr<HistoryObject> MCTS::simulate(std::shared_ptr<node_t> root) {
+void MCTS::simulate(std::shared_ptr<node_t> root) {
     auto game_result = root->board.isGameOver(); // DRAW, LOSE, NONE
     if(game_result.second != chess::GameResult::NONE) {
-        return std::make_shared<HistoryObject>(utils::board_to_tensor(root->board), torch::zeros({1, 8, 8}), 0.0, game_result.second);
+        return; // std::make_shared<HistoryObject>(utils::board_to_tensor(root->board), torch::zeros({1, 8, 8}), 0.0, game_result.second);
     }
     auto node = root->select_best_leaf();
     auto value = node->expand();
     // Logger::log("Value: " + std::to_string(value));
     node->backpropagate(value);
     
-    return std::make_shared<HistoryObject>(utils::board_to_tensor(root->board), torch::zeros({1, 8, 8}), 0.0, chess::GameResult::NONE);
+    // return std::make_shared<HistoryObject>(utils::board_to_tensor(root->board), torch::zeros({1, 8, 8}), 0.0, chess::GameResult::NONE);
 }
 
 MCTS::~MCTS()

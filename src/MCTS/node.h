@@ -36,6 +36,7 @@ public:
     float ucb_score(const std::shared_ptr<node_t> child) const;
     std::shared_ptr<node_t> select_best_leaf();
     void backpropagate(float value);
+    chess::Move get_action() const;
 
     chess::Board& board;
     std::shared_ptr<Model> model;

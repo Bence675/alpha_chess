@@ -29,9 +29,8 @@ private:
     std::shared_ptr<Model> model;
 public:
     MCTS(std::shared_ptr<Model> model, unsigned int num_simulations, float c_puct, float epsilon);
-    std::vector<float> get_action_prob(chess::Board board);
     std::shared_ptr<node_t> search(const chess::Board& board);
-    std::shared_ptr<HistoryObject> simulate(std::shared_ptr<node_t> root);
+    void simulate(std::shared_ptr<node_t> root);
     std::vector<std::pair<chess::Move, float>> _compute_policy(node_t& node);
     ~MCTS();
 

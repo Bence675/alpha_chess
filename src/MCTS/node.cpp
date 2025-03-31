@@ -5,6 +5,7 @@
 #include "node.h"
 #include "logger.h"
 #include "string_utils.h"
+#include "random.h"
 
 node_t::node_t(
     chess::Board& board,
@@ -100,4 +101,13 @@ void node_t::backpropagate(float value) {
     if (auto parent = this->parent.lock()) {
         parent->backpropagate(-value);
     }
+}
+
+chess::Move node_t::get_action() const {
+    std::vector<float> action_probs(this->children.size());
+    for (size_t i = 0; i < this->children.size(); ++i) {
+        action_probs[i] = this->children[i]->prior;
+    }
+
+    return this->children[utils::random_choose(action_probs)]->move;
 }

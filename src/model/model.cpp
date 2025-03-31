@@ -86,12 +86,12 @@ torch::Tensor value_head_t::forward(torch::Tensor x)
     return x;
 }
 
-ConvModel::ConvModel(int64_t num_actions)
-    : conv_block(20, 16, 3, 1, 1),
+ConvModel::ConvModel(int num_actions)
+    :   conv_block(20, 16, 3, 1, 1),
         policy_head(16, 2, 1, 1, 0, num_actions),
         value_head(16, 1, 1, 1, 0, 16) {}
 
-std::tuple<torch::Tensor, torch::Tensor> ConvModel::forward(torch::Tensor x) {
+std::tuple<torch::Tensor, torch::Tensor> ConvModel::_forward(torch::Tensor x) {
     Logger::log("Forward pass");
     x = conv_block.forward(x);
     torch::Tensor policy = policy_head.forward(x);

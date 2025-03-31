@@ -12,7 +12,7 @@ cmake --build $repo_path/build/debug  -j 24
 cmake -S $repo_path -B $repo_path/build/release -DCMAKE_PREFIX_PATH=include/libtorch  -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-std=c++20 -O3"
 cmake --build $repo_path/build/release  -j 24
 
-cmake -S $repo_path -B $repo_path/build/perf_build -DCMAKE_PREFIX_PATH=include/libtorch  -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-std=c++20"
+cmake -S $repo_path -B $repo_path/build/perf_build -DCMAKE_PREFIX_PATH=include/libtorch  -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-std=c++20 -O0"
 cmake --build $repo_path/build/perf_build  -j 24
 
 # Build the project
