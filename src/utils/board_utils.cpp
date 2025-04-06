@@ -9,7 +9,7 @@
 namespace utils{
 
 torch::Tensor board_to_tensor(chess::Board& board) {
-    torch::Tensor tensor = torch::zeros({20, 8, 8});
+    torch::Tensor tensor = torch::zeros({19, 8, 8});
 
     for (int i = 0; i < 64; i++) {
         int row = i / 8;
@@ -33,11 +33,8 @@ torch::Tensor board_to_tensor(chess::Board& board) {
         tensor[16][index / 8][index % 8] = 1;
     }
 
-    tensor[17] = board.halfMoveClock() / 100.0;
-
-    tensor[18] = board.sideToMove() == chess::Color::WHITE;
-
-    tensor[19] = board.isRepetition();
+    tensor[17] = board.sideToMove() == chess::Color::WHITE;
+    tensor[18] = board.halfMoveClock();
 
     return tensor;
 }

@@ -3,6 +3,7 @@
 #include <vector>
 #include <torch/torch.h>
 #include "node.h"
+#include "chess/chess.hpp"
 
 #ifndef STRING_UTILS_H
 #define STRING_UTILS_H
@@ -74,5 +75,21 @@ inline std::string to_string(const node_t& node, int tab_count = 0) {
         res += to_string(*child, tab_count + 1);
     }
     return res;
+}
+
+inline std::string to_string(const chess::Move& move) {
+    return std::string(move.from()) + " " + std::string(move.to());
+}
+
+// Split like python
+inline std::vector<std::string> split(std::string str, const std::string& delimiter) {
+    std::vector<std::string> tokens;
+    size_t pos = 0;
+    while ((pos = str.find(delimiter)) != std::string::npos) {
+        tokens.push_back(str.substr(0, pos));
+        str.erase(0, pos + delimiter.length());
+    }
+    tokens.push_back(str);
+    return tokens;
 }
 #endif // STRING_UTILS_H

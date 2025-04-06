@@ -20,7 +20,7 @@ public:
         if (x.sizes().size() != 4) {
             throw std::runtime_error("Input tensor must have 4 dimensions");
         }
-        if (x.sizes() != torch::IntArrayRef({x.sizes()[0], 20, 8, 8})) {
+        if (x.sizes() != torch::IntArrayRef({x.sizes()[0], 19, 8, 8})) {
             std::string actual_str = "[";
             for (int i = 0; i < x.sizes().size(); i++) {
                 actual_str += std::to_string(x.sizes()[i]);
@@ -29,7 +29,7 @@ public:
                 }
             }
             actual_str += "]";
-            throw std::runtime_error(join_str(" ", "Expected dimension: [20, 8, 8], actual:", actual_str));
+            throw std::runtime_error(join_str(" ", "Expected dimension: [19, 8, 8], actual:", actual_str));
 
         }
     }
@@ -64,7 +64,7 @@ public:
 
     std::tuple<torch::Tensor, torch::Tensor> forward_single(torch::Tensor x) {
         // Logger::log("Forward pass KotHModel");
-        if (x.sizes() != torch::IntArrayRef({20, 8, 8})) {
+        if (x.sizes() != torch::IntArrayRef({19, 8, 8})) {
             std::string actual_str = "[";
             for (int i = 0; i < x.sizes().size(); i++) {
                 actual_str += std::to_string(x.sizes()[i]);
@@ -73,10 +73,10 @@ public:
                 }
             }
             actual_str += "]";
-            throw std::runtime_error("Expected dimension: [20, 8, 8], actual: " + actual_str);
+            throw std::runtime_error("Expected dimension: [19, 8, 8], actual: " + actual_str);
         }
         int action_space = 73 * 64;
-        bool is_white = x[18][0][0].item<float>();
+        bool is_white = x[17][0][0].item<float>();
         chess::Square king_pos;
         chess::Square enemy_king_pos;
         for (int i = 0; i < 8; ++i) {

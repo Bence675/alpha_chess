@@ -23,6 +23,7 @@ function docker_run() {
     docker_options=(
         --env "HOME=${HOME}"
         --env "USER=${USER}"
+        --gpus all
         --init
         --interactive
         --name ${CONTAINER_NAME}

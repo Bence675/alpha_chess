@@ -30,12 +30,6 @@ TEST(TestSimulate, TestSimulateStart) {
     ASSERT_EQ(root->children[17]->value, 0);
     ASSERT_EQ(root->children[17]->children.size(), 20);
 
-    Logger::log(root->value);
-    Logger::log(root->visit_count);
-    for (const auto& child : root->children) {
-        Logger::log(child->value);
-        Logger::log(child->visit_count);
-    }
 }
 
 TEST(TestSimulate, TestSimulateGameOver) {

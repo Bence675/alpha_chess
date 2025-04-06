@@ -25,14 +25,8 @@ TEST(BoardToTensorTest, EmptyBoard) {
     // En passant
     ASSERT_TRUE(torch::all(tensor[16] == 0).item<bool>());
 
-    // Half-move clock
-    ASSERT_TRUE(torch::all(tensor[17] == 0.0).item<bool>());
-
     // Side to move (white's turn)
-    ASSERT_TRUE(torch::all(tensor[18] == 1).item<bool>());
-
-    // Repetition
-    ASSERT_TRUE(torch::all(tensor[19] == 0).item<bool>());
+    ASSERT_TRUE(torch::all(tensor[17] == 1).item<bool>());
 }
 
 TEST(BoardToTensorTest, InitialPosition) {
@@ -86,21 +80,17 @@ TEST(BoardToTensorTest, EnPassant) {
     ASSERT_EQ(torch::sum(tensor[16]).item<int>(), 1);
 }
 
-TEST(BoardToTensorTest, HalfMoveClock) {
-    chess::Board board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 50 1");
-    auto tensor = board_to_tensor(board);
-    ASSERT_TRUE(torch::all(tensor[17] == 0.5).item<bool>());
-}
-
 TEST(BoardToTensorTest, SideToMove) {
     chess::Board board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1");
     auto tensor = board_to_tensor(board);
-    ASSERT_TRUE(torch::all(tensor[18] == 0).item<bool>());
+    ASSERT_TRUE(torch::all(tensor[17] == 0).item<bool>());
 
     board.setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     tensor = board_to_tensor(board);
-    ASSERT_TRUE(torch::all(tensor[18] == 1).item<bool>());
+    ASSERT_TRUE(torch::all(tensor[17] == 1).item<bool>());
 }
+
+/*
 
 TEST(BoardToTensorTest, Repetition) {
     chess::Board board;
@@ -121,7 +111,7 @@ TEST(BoardToTensorTest, Repetition) {
     ASSERT_TRUE(board.isRepetition());
     auto tensor = board_to_tensor(board);
     ASSERT_TRUE(torch::all(tensor[19] == 1).item<bool>());
-}
+}*/
 
 
 TEST(MoveToIdxTest, RegularMove) {

@@ -30,6 +30,9 @@ public:
         this->prior = node.prior;
     }*/
 
+    typedef std::pair<chess::Move, float> action_prob_t;
+    typedef std::vector<std::pair<chess::Move, float>> action_probs_t;
+
     std::shared_ptr<node_t> select_best_child();
     float expand();
     void backup(float value);
@@ -46,6 +49,7 @@ public:
     float value;
     int visit_count;
     float prior;
+    inline static std::unordered_map<std::string, std::pair<action_probs_t, int>> action_probs_map{};
 };
 
 #endif // MCTS_NODE_H

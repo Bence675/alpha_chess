@@ -19,12 +19,16 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     cmake \
+    cuda-nvrtc-12-6 \
+    cudnn-cuda-12 \
     g++-13 gcovr \
+    gdb \
     git \
     lcov \
-    linux-tools-standard-WSL2 \
-    linux-cloud-tools-standard-WSL2 \
     linux-tools-generic \
+    nvidia-container-toolkit \
+    nvidia-cuda-toolkit \
+    nvidia-utils-535 \
     sudo \
     wget \
     unzip && \

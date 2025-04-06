@@ -87,12 +87,16 @@ torch::Tensor value_head_t::forward(torch::Tensor x)
 }
 
 ConvModel::ConvModel(int num_actions)
-    :   conv_block(20, 16, 3, 1, 1),
+    :   conv_block(19, 16, 3, 1, 1),
         policy_head(16, 2, 1, 1, 0, num_actions),
-        value_head(16, 1, 1, 1, 0, 16) {}
+        value_head(16, 1, 1, 1, 0, 16) {
+            to(torch::kCUDA);
+        }
 
 std::tuple<torch::Tensor, torch::Tensor> ConvModel::_forward(torch::Tensor x) {
-    Logger::log("Forward pass");
+    if (x.device() != torch::kCUDA) {
+        x = x.to(torch::kCUDA);
+    }
     x = conv_block.forward(x);
     torch::Tensor policy = policy_head.forward(x);
     torch::Tensor value = value_head.forward(x);
