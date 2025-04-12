@@ -3,9 +3,9 @@
 #include "model.h"
 #include "logger.h"
 
-class DummyModel : public Model {
+class Dummytorch::nn::Module : public torch::nn::Module {
 public:
-    DummyModel() {}
+    Dummytorch::nn::Module() {}
 
     int tensor_hash(torch::Tensor x) {
         int hash = 0;

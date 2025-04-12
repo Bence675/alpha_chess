@@ -12,11 +12,11 @@
 
 
 
-class KotHModel : public Model {
+class KotHModel : public torch::nn::Module {
 public:
     KotHModel() {}
 
-    void _check_input(torch::Tensor x) override {
+    void check_input(torch::Tensor x)  {
         if (x.sizes().size() != 4) {
             throw std::runtime_error("Input tensor must have 4 dimensions");
         }
@@ -34,7 +34,7 @@ public:
         }
     }
 
-    void _check_output(std::tuple<torch::Tensor, torch::Tensor> output) {
+    void check_output(std::tuple<torch::Tensor, torch::Tensor> output) {
         auto policy = std::get<0>(output);
         auto value = std::get<1>(output);
         if (policy.sizes() != torch::IntArrayRef({policy.sizes()[0], 73 * 64})) {
@@ -160,7 +160,7 @@ public:
     }
         
 
-    std::tuple<torch::Tensor, torch::Tensor> _forward(torch::Tensor x) override {
+    std::tuple<torch::Tensor, torch::Tensor> forward(torch::Tensor x) {
         if (x.sizes().size() != 4) {
             throw std::runtime_error("Input tensor must have 4 dimensions");
         }

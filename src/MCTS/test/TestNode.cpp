@@ -11,7 +11,7 @@
 TEST(TestExtract, TestExtractStart) {
     chess::Board board;
     auto tensor = utils::board_to_tensor(board);
-    std::shared_ptr<Model> model_ptr = std::make_shared<KotHModel>();
+    std::shared_ptr<torch::nn::Module> model_ptr = std::make_shared<KotHModel>();
 
     auto node = std::make_shared<node_t>(board, model_ptr);
 
@@ -30,7 +30,7 @@ TEST(TestExtract, TestExtractStart) {
 TEST(TestExtract, TestExtractGameOver) {
     chess::Board board("r1bqkbnr/ppp2Qpp/2np4/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 1");
     auto tensor = utils::board_to_tensor(board);
-    std::shared_ptr<Model> model_ptr = std::make_shared<KotHModel>();
+    std::shared_ptr<torch::nn::Module> model_ptr = std::make_shared<KotHModel>();
 
     auto node = std::make_shared<node_t>(board, model_ptr);
     node->expand();
@@ -41,7 +41,7 @@ TEST(TestExtract, TestExtractGameOver) {
 TEST(TestExtract, TestExtracAlreadyExpanded) {
     chess::Board board;
     auto tensor = utils::board_to_tensor(board);
-    std::shared_ptr<Model> model_ptr = std::make_shared<KotHModel>();
+    std::shared_ptr<torch::nn::Module> model_ptr = std::make_shared<KotHModel>();
 
     auto node = std::make_shared<node_t>(board, model_ptr);
     node->expand();
@@ -52,7 +52,7 @@ TEST(TestExtract, TestExtracAlreadyExpanded) {
 TEST(TestBackPropagate, TestBackPropagateSingleNode) {
     chess::Board board;
     auto tensor = utils::board_to_tensor(board);
-    std::shared_ptr<Model> model_ptr = std::make_shared<KotHModel>();
+    std::shared_ptr<torch::nn::Module> model_ptr = std::make_shared<KotHModel>();
 
     auto node = std::make_shared<node_t>(board, model_ptr);
     node->expand();
@@ -65,7 +65,7 @@ TEST(TestBackPropagate, TestBackPropagateSingleNode) {
 TEST(TestBackPropagate, TestBackPropagateMultipleNodes) {
     chess::Board board;
     auto tensor = utils::board_to_tensor(board);
-    std::shared_ptr<Model> model_ptr = std::make_shared<KotHModel>();
+    std::shared_ptr<torch::nn::Module> model_ptr = std::make_shared<KotHModel>();
 
     auto node = std::make_shared<node_t>(board, model_ptr);
     node->expand();
@@ -83,7 +83,7 @@ TEST(TestBackPropagate, TestBackPropagateMultipleNodes) {
 
 TEST(UcbScoreTest, UnvisitedChild) {
     chess::Board board;
-    std::shared_ptr<Model> model_ptr = std::make_shared<KotHModel>();
+    std::shared_ptr<torch::nn::Module> model_ptr = std::make_shared<KotHModel>();
     auto node = std::make_shared<node_t>(board, model_ptr);
     node->visit_count = 1;
     auto child = std::make_shared<node_t>(board, model_ptr, node, 0, 0.0);
@@ -99,7 +99,7 @@ TEST(UcbScoreTest, UnvisitedChild) {
 
 TEST(UcbScoreTest, VisitedChild) {
     chess::Board board;
-    std::shared_ptr<Model> model_ptr = std::make_shared<KotHModel>();
+    std::shared_ptr<torch::nn::Module> model_ptr = std::make_shared<KotHModel>();
     auto node = std::make_shared<node_t>(board, model_ptr);
     node->visit_count = 1;
     auto child = std::make_shared<node_t>(board, model_ptr, node, 0, 0.0);
@@ -134,7 +134,7 @@ TEST(UcbScoreTest, VisitedChild) {
 
 TEST(SelectBestChildTest, TestSelectBestChild) {
     chess::Board board;
-    std::shared_ptr<Model> model_ptr = std::make_shared<KotHModel>();
+    std::shared_ptr<torch::nn::Module> model_ptr = std::make_shared<KotHModel>();
     auto node = std::make_shared<node_t>(board, model_ptr);
     node->visit_count = 1;
     auto child1 = std::make_shared<node_t>(board, model_ptr, node, 0, 0.0);
@@ -149,7 +149,7 @@ TEST(SelectBestChildTest, TestSelectBestChild) {
 
 TEST(SelectBestLeafTest, TestSelectBestLeafOneLayer) {
     chess::Board board;
-    std::shared_ptr<Model> model_ptr = std::make_shared<KotHModel>();
+    std::shared_ptr<torch::nn::Module> model_ptr = std::make_shared<KotHModel>();
     auto node = std::make_shared<node_t>(board, model_ptr);
     node->visit_count = 1;
     auto child1 = std::make_shared<node_t>(board, model_ptr, node, chess::Move::make(chess::Square("e2"), chess::Square("e3")), 0.0);
@@ -166,7 +166,7 @@ TEST(SelectBestLeafTest, TestSelectBestLeafOneLayer) {
 
 TEST(SelectBestLeafTest, TestSelectBestLeafTwoLayer) {
     chess::Board board;
-    std::shared_ptr<Model> model_ptr = std::make_shared<KotHModel>();
+    std::shared_ptr<torch::nn::Module> model_ptr = std::make_shared<KotHModel>();
     auto node = std::make_shared<node_t>(board, model_ptr);
     node->visit_count = 1;
     auto child1 = std::make_shared<node_t>(board, model_ptr, node, chess::Move::make(chess::Square("e2"), chess::Square("e3")), 0.0);

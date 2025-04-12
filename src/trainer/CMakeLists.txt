@@ -1,12 +1,14 @@
 
 add_library(trainer
     trainer.cpp
+    thread_pool.cpp
 )
 
 target_link_libraries(trainer PUBLIC
     ${TORCH_LIBRARIES}
     model
     chess
+    dataset
     logger
     utils
     MCTS

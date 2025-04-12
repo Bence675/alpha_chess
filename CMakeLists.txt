@@ -19,35 +19,20 @@ function(add_sanitizer_flags)
     endif()
 endfunction()
 
+cmake_minimum_required(VERSION 3.20)
+project(alpha_chess)
+
 enable_testing()
 
-cmake_minimum_required(VERSION 3.20)
-project("alpha_chess")
+include_directories(/usr/local/cuda/include/nvtx3)
 
-if(NOT DEFINED LIBTORCH_URL)
-  set(LIBTORCH_URL "https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.6.0%2Bcpu.zip")
-endif()
+# Torch configuration
 
-# Try to find LibTorch first
-find_package(Torch QUIET)
-if(NOT Torch_FOUND)
-  message(STATUS "LibTorch not found. Downloading...")
-  
-  include(FetchContent)
-  FetchContent_Declare(
-    libtorch
-    URL ${LIBTORCH_URL}
-  )
-  FetchContent_MakeAvailable(libtorch)
-  
-  # Set the path to the downloaded LibTorch
-  set(Torch_DIR "${libtorch_SOURCE_DIR}/share/cmake/Torch")
-  find_package(Torch REQUIRED)
-endif()
+find_package(Torch REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}" )
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pg")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -pg")
+set(CMAKE_CXX_STANDARD 20)
+
 
 add_subdirectory(src)
 add_subdirectory(include)
@@ -66,4 +51,4 @@ target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
 
 include(CheckCXXCompilerFlag)
-add_sanitizer_flags()
+# add_sanitizer_flags()

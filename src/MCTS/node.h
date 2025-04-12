@@ -16,7 +16,7 @@ class node_t : public std::enable_shared_from_this<node_t>
 {
 
 public:
-    node_t(chess::Board& board, std::shared_ptr<Model> model,  std::shared_ptr<node_t> parent=nullptr, chess::Move move = 0, float prior=0.0);
+    node_t(chess::Board& board, std::shared_ptr<torch::nn::Module> model,  std::shared_ptr<node_t> parent=nullptr, chess::Move move = 0, float prior=0.0);
     // node_t operator=(const node_t& node);
 
     // copy constructor
@@ -40,16 +40,17 @@ public:
     std::shared_ptr<node_t> select_best_leaf();
     void backpropagate(float value);
     chess::Move get_action() const;
+    action_probs_t get_action_probs() const;
+    torch::Tensor get_action_probs_tensor() const;
 
     chess::Board& board;
-    std::shared_ptr<Model> model;
+    std::shared_ptr<torch::nn::Module> model;
     std::weak_ptr<node_t> parent;
     chess::Move move;
     std::vector<std::shared_ptr<node_t>> children;
     float value;
     int visit_count;
     float prior;
-    inline static std::unordered_map<std::string, std::pair<action_probs_t, int>> action_probs_map{};
 };
 
 #endif // MCTS_NODE_H

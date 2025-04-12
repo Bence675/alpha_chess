@@ -53,6 +53,18 @@ inline std::string to_string(const std::string& str) {
     return str;
 }
 
+inline std::string to_string(const torch::IntArrayRef& arr) {
+    std::string res = "[";
+    for (int i = 0; i < arr.size(); ++i) {
+        res += std::to_string(arr[i]);
+        if (i < arr.size() - 1) {
+            res += ", ";
+        }
+    }
+    res += "]";
+    return res;
+}
+
 template <typename Head, typename... Tail>
 std::string join_str(const std::string& sep, Head&& head, Tail&&... tail) {
     std::string res = "";

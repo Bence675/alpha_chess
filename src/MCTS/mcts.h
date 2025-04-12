@@ -7,6 +7,7 @@
 #include "chess/chess.hpp"
 
 
+
 #ifndef MCTS_H
 #define MCTS_H
 
@@ -26,13 +27,14 @@ private:
     unsigned int num_simulations;
     float c_puct;
     float epsilon;
-    std::shared_ptr<Model> model;
 public:
-    MCTS(std::shared_ptr<Model> model, unsigned int num_simulations, float c_puct, float epsilon);
+    MCTS(std::shared_ptr<torch::nn::Module> model, unsigned int num_simulations, float c_puct, float epsilon);
     std::shared_ptr<node_t> search(const chess::Board& board);
     void simulate(std::shared_ptr<node_t> root);
     std::vector<std::pair<chess::Move, float>> _compute_policy(node_t& node);
+    void set_model(std::shared_ptr<torch::nn::Module> model);
     ~MCTS();
+    std::shared_ptr<torch::nn::Module> model;
 
 };
 

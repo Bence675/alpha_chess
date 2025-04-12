@@ -2,14 +2,15 @@
 #include <cmath>
 #include <memory>
 #include <format>
+#include "random.h"
 #include "node.h"
 #include "logger.h"
 #include "string_utils.h"
-#include "random.h"
+#include "trainer.h"
 
 node_t::node_t(
     chess::Board& board,
-    std::shared_ptr<Model> model,
+    std::shared_ptr<torch::nn::Module> model,
     std::shared_ptr<node_t> parent,
     chess::Move move,
     float prior
@@ -94,16 +95,37 @@ float node_t::expand() {
     }
     fen_without_fullmove = fen_without_fullmove.substr(0, fen_without_fullmove.size() - 1);
 
-    if (node_t::action_probs_map.contains(fen_without_fullmove)) {
-        auto action_probs = node_t::action_probs_map[fen_without_fullmove].first;
-        for (auto& action_prob : action_probs) {
-            auto move = action_prob.first;
-            auto prob = action_prob.second;
-            this->children.push_back(std::make_shared<node_t>(this->board, this->model, shared_from_this(), move, prob));
+    auto& memory_instance = memory::getInstance();
+
+    while (true) {
+        {
+            std::unique_lock<std::mutex> lock(memory_instance.action_probs_map_mutex);
+            if (memory_instance.action_probs_map.contains(fen_without_fullmove)) {
+                break;
+            }
         }
-        return node_t::action_probs_map[fen_without_fullmove].second;
+        // Logger::log("Waiting for model to compute action probabilities for " + fen_without_fullmove);
+        
+        {
+            std::unique_lock<std::mutex> lock(memory_instance.boards_to_compute_and_processing_mutex);
+            if (std::find(memory_instance.processing.begin(), memory_instance.processing.end(), fen_without_fullmove) == memory_instance.processing.end() &&
+                std::find(memory_instance.boards_to_compute.begin(), memory_instance.boards_to_compute.end(), fen_without_fullmove) == memory_instance.boards_to_compute.end()) {
+                    memory_instance.boards_to_compute.push_back(fen_without_fullmove);
+            } 
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10)); // maybe need more times
     }
 
+    auto action_probs = memory_instance.action_probs_map[fen_without_fullmove].first;
+    for (auto& action_prob : action_probs) {
+        auto move = action_prob.first;
+        auto prob = action_prob.second;
+        this->children.push_back(std::make_shared<node_t>(this->board, this->model, shared_from_this(), move, prob));
+    }
+    return memory_instance.action_probs_map[fen_without_fullmove].second;
+
+
+/*
     auto output = this->model->forward(torch::unsqueeze(state_tensor, 0));
 
     auto policy_tensor = std::get<0>(output)[0];
@@ -119,8 +141,8 @@ float node_t::expand() {
         this->children.push_back(std::make_shared<node_t>(this->board, this->model, shared_from_this(), move, policy_tensor[idx].item<float>()));
         action_probs.push_back(std::make_pair(move, policy_tensor[idx].item<float>()));
     }
-    node_t::action_probs_map[fen_without_fullmove] = std::make_pair(action_probs, value_tensor[0].item<float>());
-    return value_tensor[0].item<float>();
+    memory::getInstance().action_probs_map[fen_without_fullmove] = std::make_pair(action_probs, value_tensor[0].item<float>());
+    return value_tensor[0].item<float>();*/
 }
 
 void node_t::backpropagate(float value) {
@@ -138,4 +160,20 @@ chess::Move node_t::get_action() const {
     }
 
     return this->children[utils::random_choose(action_probs)]->move;
+}
+
+node_t::action_probs_t node_t::get_action_probs() const {
+    node_t::action_probs_t action_probs;
+    for (auto child : this->children) {
+        action_probs.push_back(std::make_pair(child->move, child->prior));
+    }
+    return action_probs;
+}
+
+torch::Tensor node_t::get_action_probs_tensor() const {
+    torch::Tensor action_probs_tensor = torch::zeros({1, 73 * 64});
+    for (auto child : this->children) {
+        action_probs_tensor[0][utils::move_to_idx(child->move)] = child->prior;
+    }
+    return action_probs_tensor;
 }

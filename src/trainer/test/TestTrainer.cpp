@@ -7,7 +7,7 @@
 TEST(TestTrainer, TestPlayGame) {
     TrainerConfig config;
     config.num_simulations = 10;
-    Trainer trainer = Trainer(config);
+    Trainer trainer;
     trainer.play_game();
 }
 
@@ -16,6 +16,6 @@ TEST(TestTrainer, TestSelfPlay) {
     config.num_simulations = 100;
 
     config.num_games = 100;
-    Trainer trainer = Trainer(config);
+    Trainer trainer;
     trainer.self_play();
 }

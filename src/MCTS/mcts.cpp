@@ -8,7 +8,7 @@
 #include <board_utils.h>
 
 
-MCTS::MCTS(std::shared_ptr<Model> model, unsigned int num_simulations, float c_puct, float epsilon)
+MCTS::MCTS(std::shared_ptr<torch::nn::Module> model, unsigned int num_simulations, float c_puct, float epsilon)
 {
     this->model = model;
     this->num_simulations = num_simulations;
@@ -43,6 +43,11 @@ void MCTS::simulate(std::shared_ptr<node_t> root) {
     auto value = node->expand();
     node->backpropagate(value);
     // return std::make_shared<HistoryObject>(utils::board_to_tensor(root->board), torch::zeros({1, 8, 8}), 0.0, chess::GameResult::NONE);
+}
+
+void MCTS::set_model(std::shared_ptr<torch::nn::Module> model)
+{
+    this->model = model;
 }
 
 MCTS::~MCTS()

@@ -3,7 +3,6 @@
 add_library(
     utils
     board_utils.cpp
-    random.cpp
 )
 
 target_include_directories(utils

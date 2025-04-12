@@ -10,6 +10,7 @@ target_link_libraries(MCTS PUBLIC
     chess
     logger
     utils
+    trainer
 )
 
 target_include_directories(MCTS
