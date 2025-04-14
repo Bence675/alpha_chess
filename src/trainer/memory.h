@@ -16,6 +16,15 @@ public:
         static memory instance;
         return instance;
     }
+
+    static void clear() {
+        auto& instance = getInstance();
+        std::lock_guard<std::mutex> lock(instance.boards_to_compute_and_processing_mutex);
+        std::lock_guard<std::mutex> lock2(instance.action_probs_map_mutex);
+        instance.action_probs_map.clear();
+        instance.boards_to_compute.clear();
+        instance.processing.clear();
+    }
     memory(const memory&) = delete;
     memory& operator=(const memory&) = delete;
     memory(memory&&) = delete;

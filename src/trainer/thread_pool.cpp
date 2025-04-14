@@ -33,6 +33,10 @@ ThreadPool::ThreadPool(size_t num_threads) {
             }
 
             task();
+            {
+                std::unique_lock<std::mutex> lock(queue_mutex_);
+                cv_finished_.notify_all();
+            }
         }
     });
     }
@@ -68,5 +72,7 @@ void ThreadPool::enqueue(std::function<void()> task)
 void ThreadPool::wait()
 {
     std::unique_lock<std::mutex> lock(queue_mutex_);
-    cv_.wait(lock, [this] { return tasks_.empty(); });
+    cv_finished_.wait(lock, [this] {
+        return tasks_.empty();
+    });
 }

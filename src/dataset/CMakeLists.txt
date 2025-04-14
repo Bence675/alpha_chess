@@ -8,6 +8,8 @@ add_library(
 target_link_libraries(dataset PUBLIC
     ${TORCH_LIBRARIES}
     chess
+    json
+    logger
     utils
 )
 

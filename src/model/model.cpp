@@ -12,18 +12,18 @@ torch::nn::Sequential create_conv2d(int64_t in_channels, int64_t out_channels, i
     return std::move(torch::nn::Sequential(
         torch::nn::Conv2d(torch::nn::Conv2dOptions(in_channels, out_channels, kernel_size).stride(stride).padding(padding)),
         torch::nn::BatchNorm2d(out_channels),
-        torch::nn::ReLU(torch::nn::ReLUOptions().inplace(true)),
+        torch::nn::ReLU(torch::nn::ReLUOptions()),
         torch::nn::Conv2d(torch::nn::Conv2dOptions(out_channels, out_channels, kernel_size).stride(stride).padding(padding)),
         torch::nn::BatchNorm2d(out_channels),
-        torch::nn::ReLU(torch::nn::ReLUOptions().inplace(true))
+        torch::nn::ReLU(torch::nn::ReLUOptions())
     ));
 }
 
 torch::nn::Sequential create_policy_head(int64_t in_dimensions, int64_t out_channels, int64_t hidden_dim) {
     return std::move(torch::nn::Sequential(
-        torch::nn::ReLU(torch::nn::ReLUOptions().inplace(true)),
+        torch::nn::ReLU(torch::nn::ReLUOptions()),
         torch::nn::Linear(in_dimensions, hidden_dim),
-        torch::nn::ReLU(torch::nn::ReLUOptions().inplace(true)),
+        torch::nn::ReLU(torch::nn::ReLUOptions()),
         torch::nn::Linear(hidden_dim, out_channels),
         torch::nn::LogSoftmax(torch::nn::LogSoftmaxOptions(1))
     ));
@@ -31,9 +31,9 @@ torch::nn::Sequential create_policy_head(int64_t in_dimensions, int64_t out_chan
 
 torch::nn::Sequential create_value_head(int64_t in_dimensions, int64_t out_channels, int64_t hidden_dim) {
     return std::move(torch::nn::Sequential(
-        torch::nn::ReLU(torch::nn::ReLUOptions().inplace(true)),
+        torch::nn::ReLU(torch::nn::ReLUOptions()),
         torch::nn::Linear(in_dimensions, hidden_dim),
-        torch::nn::ReLU(torch::nn::ReLUOptions().inplace(true)),
+        torch::nn::ReLU(torch::nn::ReLUOptions()),
         torch::nn::Linear(hidden_dim, out_channels),
         torch::nn::Tanh()
     ));
@@ -134,16 +134,15 @@ ConvModel::ConvModel (int num_actions, int in_channels, int hidden_channels, int
 
 std::tuple<torch::Tensor, torch::Tensor> ConvModel::forward(torch::Tensor x) {
     if (x.device() != torch::kCUDA) {
-        Logger::log("Input tensor is not on CUDA device");
         x = x.to(torch::kCUDA);
     }
     x = _conv_block->forward(x);
     x = x.view({x.size(0), -1});
-    Logger::log("Shape after conv block: " + to_string(x.sizes()));
+    // Logger::log("Shape after conv block: " + to_string(x.sizes()));
     torch::Tensor policy = _policy_head->forward(x);
-    Logger::log("Shape after policy head: " + to_string(policy.sizes()));
+    // Logger::log("Shape after policy head: " + to_string(policy.sizes()));
     torch::Tensor value = _value_head->forward(x);
-    Logger::log("Shape after value head: " + to_string(value.sizes()));
+    //Logger::log("Shape after value head: " + to_string(value.sizes()));
     return std::make_tuple(policy, value);
 }
 

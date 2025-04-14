@@ -38,6 +38,7 @@ std::shared_ptr<node_t> node_t::select_best_child() {
     std::shared_ptr<node_t> best_child;
     for(auto child : this->children) {
         float score = this->ucb_score(child);
+        // Logger::log(join_str(" ", "Child", std::string(child->move.from()), std::string(child->move.to()), "Value", child->value, "Visit Count", child->visit_count, "Score", score));
         if(score > best_score) {
             best_score = score;
             best_child = child;
@@ -69,10 +70,11 @@ std::shared_ptr<node_t> node_t::select_best_leaf() {
 float node_t::ucb_score(const std::shared_ptr<node_t> child) const {
     float q_value;
     if (child->visit_count == 0) {
-        q_value = 0;
+        q_value = 0.5;
     } else {
         q_value = 1 - ((child->value / child->visit_count) + 1) / 2;
     }
+    // Logger::log(join_str(" ", "Child", std::string(child->move.from()), std::string(child->move.to()), "Value", child->value, "Visit Count", child->visit_count, "Q Value", q_value, "prior", child->prior, "Parent visit count", this->visit_count));
     return q_value + C_PUCT * child->prior * std::sqrt(this->visit_count) / (1 + child->visit_count);
 }
 
@@ -117,9 +119,14 @@ float node_t::expand() {
     }
 
     auto action_probs = memory_instance.action_probs_map[fen_without_fullmove].first;
+    int sum = 0;
+    for (auto& action_prob : action_probs) {
+        sum += action_prob.second;
+    }
+
     for (auto& action_prob : action_probs) {
         auto move = action_prob.first;
-        auto prob = action_prob.second;
+        auto prob = action_prob.second / sum;
         this->children.push_back(std::make_shared<node_t>(this->board, this->model, shared_from_this(), move, prob));
     }
     return memory_instance.action_probs_map[fen_without_fullmove].second;
@@ -165,15 +172,16 @@ chess::Move node_t::get_action() const {
 node_t::action_probs_t node_t::get_action_probs() const {
     node_t::action_probs_t action_probs;
     for (auto child : this->children) {
-        action_probs.push_back(std::make_pair(child->move, child->prior));
+        action_probs.push_back(std::make_pair(child->move, static_cast<float>(child->visit_count) / this->visit_count));
     }
     return action_probs;
 }
 
 torch::Tensor node_t::get_action_probs_tensor() const {
-    torch::Tensor action_probs_tensor = torch::zeros({1, 73 * 64});
+    torch::Tensor action_probs_tensor = torch::zeros({73 * 64});
     for (auto child : this->children) {
-        action_probs_tensor[0][utils::move_to_idx(child->move)] = child->prior;
+        action_probs_tensor[utils::move_to_idx(child->move)] = static_cast<float>(child->visit_count) / this->visit_count;
+        // Logger::log(join_str(" ", "Move", std::string(child->move.from()), std::string(child->move.to()), "idx", utils::move_to_idx(child->move), "Child visit count", child->visit_count, "Parent visit count", this->visit_count));
     }
     return action_probs_tensor;
 }

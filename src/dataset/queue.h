@@ -1,5 +1,5 @@
 
-#include <queue>
+#include <vector>
 #include <mutex>
 #include <stdexcept>
 
@@ -8,23 +8,20 @@ class Queue {
 public:
     Queue(int max_size=0) : _max_size(max_size) {}
 
+    T operator[](size_t index) const {
+        std::lock_guard<std::mutex> lock(_mtx);
+        if (index >= _queue.size()) {
+            throw std::runtime_error("Index out of range");
+        }
+        return _queue[index];
+    }
+
     void push(const T& data) {
         std::lock_guard<std::mutex> lock(_mtx);
-        if (_max_size > 0 && _queue.size() >= _max_size) {
-            _queue.pop();
+        if (_max_size > 0 && _queue.size() >= _max_size * 2) {
+            _queue.erase(_queue.begin(), _queue.begin() + _max_size);
         }
-        _queue.push(data);
-    }
-    
-
-    T pop() {
-        std::lock_guard<std::mutex> lock(_mtx);
-        if (_queue.empty()) {
-            throw std::runtime_error("Queue is empty");
-        }
-        T data = _queue.front();
-        _queue.pop();
-        return data;
+        _queue.push_back(data);
     }
 
     bool empty() const {
@@ -34,13 +31,15 @@ public:
 
     size_t size() const {
         std::lock_guard<std::mutex> lock(_mtx);
-        return _queue.size();
+        if (_max_size == 0) {
+            return _queue.size();
+        }
+        return std::min(_queue.size(), static_cast<size_t>(_max_size));
     }
+
     void clear(){
         std::lock_guard<std::mutex> lock(_mtx);
-        while (!_queue.empty()) {
-            _queue.pop();
-        }
+        _queue.clear();
     }
 
     Queue(const Queue&) = default;
@@ -59,6 +58,6 @@ public:
 
 private:
     mutable std::mutex _mtx;
-    std::queue<T> _queue;
+    std::vector<T> _queue;
     int _max_size;
 };

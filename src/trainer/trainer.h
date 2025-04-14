@@ -29,6 +29,8 @@ public:
     void load_model(const std::string& path);
     void save_model(const std::string& path);
     void set_model(std::shared_ptr<ConvModel> model);
+    void save_dataset(const std::string& path);
+    void load_dataset(const std::string& path);
 
 
 private:
@@ -38,6 +40,7 @@ private:
     TrainerConfig config;
     ChessDataSet _dataset;
     std::shared_ptr<torch::optim::Adam> _optimizer;
+    bool _self_playing = false;
 };
 
 #endif // TRAINER_H

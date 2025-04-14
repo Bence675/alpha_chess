@@ -10,21 +10,33 @@
 
 Trainer::Trainer(TrainerConfig config) : config(config) {
     Logger::log("Trainer constructor");
-    _model = std::make_shared<ConvModel>(73 * 64);
+    _model = std::make_shared<ConvModel>(73 * 64, 19, 128, 512, 3, 16384);
     _model->to(torch::kCUDA);
     _model->eval();
     _optimizer = std::make_shared<torch::optim::Adam>(_model->parameters(), torch::optim::AdamOptions(0.001));
     Logger::log("Model created");
     _mcts = std::make_shared<MCTS>(_model, config.num_simulations, 1.0, 0.03);
+    // auto dataset = ChessDataSet(1000000).map(torch::data::transforms::Stack<>());
+    // _dataset = ChessDataSet(1000000).map(torch::data::transforms::Stack<>());
     
 
     model_thread = std::thread([this]() {
         while (true) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            // if (!_self_playing) {
+            //     Logger::log("Waiting forself play");
+             //    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            //     continue;
+            // }
             torch::Tensor input_tensor;
             
             {
                 std::unique_lock<std::mutex> lock(memory::getInstance().boards_to_compute_and_processing_mutex);
+                if (memory::getInstance().boards_to_compute.size() == 0) {
+                    continue;
+                }
                 memory::getInstance().processing = memory::getInstance().boards_to_compute;
+                // Logger::log("Processing " + std::to_string(memory::getInstance().processing.size()) + " boards");
                 input_tensor = torch::zeros({static_cast<long>(memory::getInstance().boards_to_compute.size()), 19, 8, 8});
                 for (int i = 0; i < memory::getInstance().boards_to_compute.size(); i++) {
                     auto board = chess::Board(memory::getInstance().boards_to_compute[i]);
@@ -33,16 +45,13 @@ Trainer::Trainer(TrainerConfig config) : config(config) {
                 memory::getInstance().boards_to_compute.clear();
             }
             if (input_tensor.sizes()[0] == 0) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 Logger::log("No boards to compute");
                 continue;
             }
-            Logger::log("Computing action probabilities for " + to_string(input_tensor.sizes()) + " boards");
+            Logger::log("Computing action probabilities for " + std::to_string(input_tensor.sizes()[0]) + " boards");
             auto output = _model->forward(input_tensor);
             auto policy_tensor = std::get<0>(output).to(torch::kCPU);
             auto value_tensor = std::get<1>(output).to(torch::kCPU);
-
-            Logger::log("Action probabilities computed");
 
             for (int i = 0; i < memory::getInstance().processing.size(); i++) {
                 auto fen_without_fullmove = memory::getInstance().processing[i];
@@ -52,7 +61,6 @@ Trainer::Trainer(TrainerConfig config) : config(config) {
                 chess::movegen::legalmoves(legal_moves, board);
                 for (auto move : legal_moves) {
                     auto idx = utils::move_to_idx(move);
-                    Logger::log(join_str(" ", "Move", std::string(move.from()), std::string(move.to()), "idx", idx));
                     action_probs.push_back(std::make_pair(move, policy_tensor[i][idx].item<float>()));
                 }
                 
@@ -61,8 +69,6 @@ Trainer::Trainer(TrainerConfig config) : config(config) {
                 
                 memory::getInstance().action_probs_map[fen_without_fullmove] = std::make_pair(action_probs, value_tensor[i].item<float>());
             }
-
-            Logger::log("Action probabilities stored");
 
             /*{
                 std::unique_lock<std::mutex> lock(memory::getInstance().action_probs_map_mutex);
@@ -73,13 +79,14 @@ Trainer::Trainer(TrainerConfig config) : config(config) {
                 std::unique_lock<std::mutex> lock(memory::getInstance().boards_to_compute_and_processing_mutex);
                 memory::getInstance().processing.clear();
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     });
     model_thread.detach();
 }
 
 void Trainer::self_play() {
+    _self_playing = true;
+    _dataset.clear();
     ThreadPool pool(config.max_threads);
 
     torch::Tensor data_memory;
@@ -91,11 +98,14 @@ void Trainer::self_play() {
         });
     }
 
-    return pool.wait();
+    pool.wait();
+
+    // save dataset
 }
 
 void Trainer::play_game() {
     chess::Board board;
+    _self_playing = false;
     std::vector<ChessData> history;
     while (true) {
         Logger::log("Cache size: " + std::to_string(memory::getInstance().action_probs_map.size()));
@@ -164,6 +174,7 @@ void Trainer::set_model(std::shared_ptr<ConvModel> model) {
 }
 
 void Trainer::train() {
+    Logger::log("Training");
     _model->train();
     if (!_dataset.size().has_value()) {
         Logger::log("Dataset has no data");
@@ -171,32 +182,56 @@ void Trainer::train() {
     }
     int size = _dataset.size().value();
     auto indices = torch::randperm(size);
-    int batch_size = 64;
+    int batch_size = 4096;
+    auto data_loader = torch::data::make_data_loader(
+        std::move(_dataset),
+        torch::data::DataLoaderOptions().batch_size(batch_size).workers(1)
+    );
+
+    int sum_policy_loss = 0;
+    int sum_value_loss = 0;
 
     for (int epoch = 0; epoch < config.num_epochs; epoch++) {
-        for (int i = 0; i < size; i += batch_size) {
-            auto batch_indices = indices.slice(0, i, std::min(i + batch_size, size));
-            auto batch = _dataset.get_batch(batch_indices);
-            auto input_tensor = std::get<0>(batch);
-            auto target_tensor = std::get<1>(batch);
-            auto value_tensor = std::get<2>(batch);
-            
-            Logger::log("Computing action probabilities for " + to_string(input_tensor.sizes()) + " boards  2");
-            auto output = _model->forward(input_tensor);
-            auto policy_tensor = std::get<0>(output);
-            auto value_tensor_out = std::get<1>(output);
-            auto policy_loss = torch::nn::functional::cross_entropy(policy_tensor, target_tensor);
-            auto value_loss = torch::nn::functional::mse_loss(value_tensor_out, value_tensor);
+        int batch_count = 0;
+        for (auto& batch : *data_loader) {
+            batch_count++;
+            torch::Tensor input, policy_target, value_target;
+            input = batch.input.to(torch::kCUDA);
+            policy_target = batch.policy.to(torch::kCUDA);
+            // Change 0 in policy_target to -100 for invalid moves
+            auto policy_target_mask = policy_target != 0;
+            policy_target.masked_fill_(policy_target_mask, -100);
+
+            value_target = batch.value.view({-1}).to(torch::kCUDA);
+            // Logger::log("Input shape: " + to_string(input.sizes()));
+            // Logger::log("Policy target shape: " + to_string(policy_target.sizes()));
+            // Logger::log("Value target shape: " + to_string(value_target.sizes()));
+            auto output = _model->forward(input);
+            auto policy_output = std::get<0>(output);
+            auto value_output = std::get<1>(output).view({-1});
+            // Logger::log("Policy output shape: " + to_string(policy_output.sizes()));
+            // Logger::log("Value output shape: " + to_string(value_output.sizes()));
+            auto policy_loss = torch::nn::functional::cross_entropy(policy_output, policy_target);
+            auto value_loss = torch::nn::functional::mse_loss(value_output, value_target);
             auto loss = policy_loss + value_loss;
             _model->zero_grad();
             loss.backward();
             _optimizer->step();
-            Logger::log("Epoch: " + std::to_string(epoch) + " Batch: " + std::to_string(i / batch_size) + " Loss: " + std::to_string(loss.item<float>()));
-            Logger::log("Policy Loss: " + std::to_string(policy_loss.item<float>()));
-            Logger::log("Value Loss: " + std::to_string(value_loss.item<float>()));
+            sum_policy_loss += policy_loss.item<float>();
+            sum_value_loss += value_loss.item<float>();
+            Logger::log("Epoch: " + std::to_string(epoch) + " Batch: " + std::to_string(batch_count) + " Policy Loss: " + std::to_string(policy_loss.item<float>()) + " Value Loss: " + std::to_string(value_loss.item<float>()) + "Sum Policy Loss: " + std::to_string(sum_policy_loss) + " Sum Value Loss: " + std::to_string(sum_value_loss));
+            // Logger::log("Policy Loss: " + std::to_string(policy_loss.item<float>()));
+            // Logger::log("Value Loss: " + std::to_string(value_loss.item<float>()));
         }
-        save_model("model_epoch_" + std::to_string(epoch) + ".pt");
-        Logger::log("Model saved");
     }
+    save_model("model.pt");
+    Logger::log("Model saved");
 }
 
+void Trainer::save_dataset(const std::string& path) {
+    _dataset.save(path);
+}
+
+void Trainer::load_dataset(const std::string& path) {
+    _dataset.load(path);
+}

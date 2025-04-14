@@ -112,7 +112,14 @@ protected:
 
 class ConvModel : public torch::nn::Module  {
 public:
-    ConvModel(int num_actions, int in_channels=19, int hidden_channels=128, int out_channels=512, int kernel_size=3, int hidden_dim=2048);
+    ConvModel(
+        int num_actions,
+        int in_channels=19,
+        int hidden_channels=128,
+        int out_channels=512,
+        int kernel_size=3,
+        int hidden_dim=2048
+    );
     virtual std::tuple<torch::Tensor, torch::Tensor> forward(torch::Tensor x);
     void to(torch::Device device) {
         _conv_block->to(device);

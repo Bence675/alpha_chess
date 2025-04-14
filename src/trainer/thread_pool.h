@@ -40,6 +40,7 @@ private:
     // Condition variable to signal changes in the state of
     // the tasks queue
     std::condition_variable cv_;
+    std::condition_variable cv_finished_;
 
     // Flag to indicate whether the thread pool should stop
     // or not
