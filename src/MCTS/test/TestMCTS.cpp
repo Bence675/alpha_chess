@@ -12,8 +12,13 @@
 #include <mcts.h>
 #include "string_utils.h"
 
+using namespace config;
+
 TEST(TestSimulate, TestSimulateStart) {
-    auto mcts = MCTS(std::make_shared<KotHModel>(), 1, 1.0, 0.03);
+    Config::MCTSConfig mcts_config;
+    mcts_config.num_simulations = 1;
+    mcts_config.exploration_constant = 1.0;
+    auto mcts = MCTS(std::make_shared<KotHModel>(), mcts_config);
     chess::Board board;
     chess::Board board_copy = chess::Board(board); 
     auto root = std::make_shared<node_t>(board_copy, std::make_shared<KotHModel>());
@@ -34,7 +39,10 @@ TEST(TestSimulate, TestSimulateStart) {
 
 TEST(TestSimulate, TestSimulateGameOver) {
     
-    auto mcts = MCTS(std::make_shared<KotHModel>(), 1, 1.0, 0.03);
+    Config::MCTSConfig mcts_config;
+    mcts_config.num_simulations = 1;
+    mcts_config.exploration_constant = 1.0;
+    auto mcts = MCTS(std::make_shared<KotHModel>(), mcts_config);
     chess::Board board("r1bqkbnr/ppp2Qpp/2np4/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 1");
     chess::Board board_copy = chess::Board(board); 
     auto root = std::make_shared<node_t>(board_copy, std::make_shared<KotHModel>());
@@ -44,7 +52,6 @@ TEST(TestSimulate, TestSimulateGameOver) {
     ASSERT_EQ(root->value, 0);
     ASSERT_EQ(root->visit_count, 0);
 
-    mcts = MCTS(std::make_shared<KotHModel>(), 1, 1.0, 0.03);
     board = chess::Board("r1bqkbnr/ppp2Qpp/2np4/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 1");
     board_copy = chess::Board(board); 
     root = std::make_shared<node_t>(board_copy, std::make_shared<KotHModel>());
@@ -55,7 +62,10 @@ TEST(TestSimulate, TestSimulateGameOver) {
 }
 
 TEST(TestSearch, TestSearch) {
-    auto mcts = MCTS(std::make_shared<KotHModel>(), 100, 1.0, 0.03);
+    Config::MCTSConfig mcts_config;
+    mcts_config.num_simulations = 1;
+    mcts_config.exploration_constant = 1.0;
+    auto mcts = MCTS(std::make_shared<KotHModel>(), mcts_config);
     chess::Board board;
     auto root = mcts.search(board);
     

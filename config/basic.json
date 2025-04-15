@@ -1,0 +1,21 @@
+{
+    "MCTS": {
+        "num_simulations": 100,
+        "exploration_constant": 1.4
+    },
+    "trainer": {
+        "self_play": {
+            "num_iterations": 1000,
+            "num_games_per_iteration": 1000,
+            "max_threads": 1000
+        },
+        "training": {
+            "num_epochs": 10,
+            "batch_size": 1024
+        }
+    },
+    "network": {
+        "num_filters": 128,
+        "hidden_dim": 4096
+    }
+}

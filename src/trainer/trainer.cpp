@@ -8,14 +8,14 @@
 #include "thread_pool.h"
 
 
-Trainer::Trainer(TrainerConfig config) : config(config) {
+Trainer::Trainer(const config::Config& config) : config(config.trainer_config) {
     Logger::log("Trainer constructor");
-    _model = std::make_shared<ConvModel>(73 * 64, 19, 128, 512, 3, 16384);
+    _model = std::make_shared<ConvModel>(config.network_config);
     _model->to(torch::kCUDA);
     _model->eval();
     _optimizer = std::make_shared<torch::optim::Adam>(_model->parameters(), torch::optim::AdamOptions(0.001));
     Logger::log("Model created");
-    _mcts = std::make_shared<MCTS>(_model, config.num_simulations, 1.0, 0.03);
+    _mcts = std::make_shared<MCTS>(_model, config.mcts_config);
     // auto dataset = ChessDataSet(1000000).map(torch::data::transforms::Stack<>());
     // _dataset = ChessDataSet(1000000).map(torch::data::transforms::Stack<>());
     
@@ -87,11 +87,12 @@ Trainer::Trainer(TrainerConfig config) : config(config) {
 void Trainer::self_play() {
     _self_playing = true;
     _dataset.clear();
-    ThreadPool pool(config.max_threads);
+    auto& trainer_config = config.self_play_config;
+    ThreadPool pool(trainer_config.max_threads);
 
     torch::Tensor data_memory;
     torch::Tensor target_memory;
-    for (int i = 0; i < config.num_games; i++) {
+    for (int i = 0; i < trainer_config.num_games_per_iteration; i++) {
         Logger::log("Game " + std::to_string(i));
         pool.enqueue([this]() {
             play_game();
@@ -176,6 +177,7 @@ void Trainer::set_model(std::shared_ptr<ConvModel> model) {
 void Trainer::train() {
     Logger::log("Training");
     _model->train();
+    auto& trainer_config = config.training_config;
     if (!_dataset.size().has_value()) {
         Logger::log("Dataset has no data");
         return;
@@ -191,7 +193,7 @@ void Trainer::train() {
     int sum_policy_loss = 0;
     int sum_value_loss = 0;
 
-    for (int epoch = 0; epoch < config.num_epochs; epoch++) {
+    for (int epoch = 0; epoch < trainer_config.num_epochs; epoch++) {
         int batch_count = 0;
         for (auto& batch : *data_loader) {
             batch_count++;

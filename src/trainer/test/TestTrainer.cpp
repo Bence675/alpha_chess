@@ -2,20 +2,22 @@
 
 #include "trainer.h"
 #include <gtest/gtest.h>
+#include "config.h"
 
+using namespace config;
 
 TEST(TestTrainer, TestPlayGame) {
-    TrainerConfig config;
-    config.num_simulations = 10;
-    Trainer trainer;
+    Config config;
+    config.mcts_config.num_simulations = 10;
+    Trainer trainer(config);
     trainer.play_game();
 }
 
 TEST(TestTrainer, TestSelfPlay) {
-    TrainerConfig config;
-    config.num_simulations = 100;
+    Config config;
+    config.trainer_config.self_play_config.num_games_per_iteration = 100;
 
-    config.num_games = 100;
-    Trainer trainer;
+    config.mcts_config.num_simulations = 100;
+    Trainer trainer(config);
     trainer.self_play();
 }

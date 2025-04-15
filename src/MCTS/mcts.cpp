@@ -8,12 +8,10 @@
 #include <board_utils.h>
 
 
-MCTS::MCTS(std::shared_ptr<torch::nn::Module> model, unsigned int num_simulations, float c_puct, float epsilon)
-{
+MCTS::MCTS(std::shared_ptr<torch::nn::Module> model, const config::Config::MCTSConfig& config){
     this->model = model;
-    this->num_simulations = num_simulations;
-    this->c_puct = c_puct;
-    this->epsilon = epsilon;
+    this->num_simulations = config.num_simulations;
+    this->c_puct = config.exploration_constant;
 }
 
 std::shared_ptr<node_t> MCTS::search(const chess::Board& board)

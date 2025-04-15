@@ -12,4 +12,5 @@ target_link_libraries(model
     PUBLIC
     ${TORCH_LIBRARIES}
     logger
+    config
 )

@@ -8,6 +8,7 @@ target_link_libraries(MCTS PUBLIC
     ${TORCH_LIBRARIES}
     model
     chess
+    config
     logger
     utils
     trainer

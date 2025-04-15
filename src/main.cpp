@@ -4,13 +4,17 @@
 
 #include "logger/logger.h"
 #include "trainer/trainer.h"
+#include "args/args_parser.h"
 
-int main() {
-    // Initialize the logger
-    auto config = TrainerConfig();
-    config.num_simulations = 100;
-    config.num_games = 1024;
-    config.max_threads = 1024;
+int main(int argc, char *argv[]) {
+
+    auto args = args::parse_args(argc, argv);
+    if (args.help) {
+        args::print_help();
+        return 0;
+    }
+
+    auto config = config::load_config(args.config_file);
 
     Trainer trainer(config);
     for (int i = 0; i < 100; i++) {
