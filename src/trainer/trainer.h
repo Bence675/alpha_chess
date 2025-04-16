@@ -18,13 +18,13 @@ public:
     void self_play();
     void load_model(const std::string& path);
     void save_model(const std::string& path);
-    void set_model(std::shared_ptr<ConvModel> model);
+    void set_model(std::shared_ptr<LCZero> model);
     void save_dataset(const std::string& path);
     void load_dataset(const std::string& path);
 
 
 private:
-    std::shared_ptr<ConvModel> _model;
+    std::shared_ptr<LCZero> _model;
     std::shared_ptr<MCTS> _mcts;
     std::thread model_thread;
     config::Config::TrainerConfig config;

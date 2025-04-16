@@ -29,12 +29,20 @@ struct Config {
     };
     
     struct NetworkConfig {
-        int num_hidden_channels = 128;
-        int num_hidden_dimensions = 4096;
+        int64_t in_channels;
+        int64_t num_blocks;
+        int64_t num_filters;
+        int64_t policy_head_filters;
+        int64_t value_head_filters;
+        int64_t reduction_ratio;
 
         void load_config(const nlohmann::json &json_config) {
-            num_hidden_channels = lookup(json_config, "num_hidden_channels", num_hidden_channels);
-            num_hidden_dimensions = lookup(json_config, "num_hidden_dimensions", num_hidden_dimensions);
+            in_channels = 19;
+            num_blocks = lookup(json_config, "num_blocks", 20);
+            num_filters = lookup(json_config, "num_filters", 256);
+            policy_head_filters = lookup(json_config, "policy_head_filters", 256);
+            value_head_filters = lookup(json_config, "value_head_filters", 256);
+            reduction_ratio = lookup(json_config, "reduction_ratio", 16);
         }
     };
     

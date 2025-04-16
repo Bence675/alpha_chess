@@ -10,7 +10,7 @@
 
 Trainer::Trainer(const config::Config& config) : config(config.trainer_config) {
     Logger::log("Trainer constructor");
-    _model = std::make_shared<ConvModel>(config.network_config);
+    _model = std::make_shared<LCZero>(config.network_config);
     _model->to(torch::kCUDA);
     _model->eval();
     _optimizer = std::make_shared<torch::optim::Adam>(_model->parameters(), torch::optim::AdamOptions(0.001));
@@ -169,7 +169,7 @@ void Trainer::save_model(const std::string& path) {
     Logger::log("Model saved to " + path);
 }
 
-void Trainer::set_model(std::shared_ptr<ConvModel> model) {
+void Trainer::set_model(std::shared_ptr<LCZero> model) {
     _model = model;
     _mcts->set_model(model);
 }

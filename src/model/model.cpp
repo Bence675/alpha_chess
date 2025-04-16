@@ -39,8 +39,8 @@ torch::nn::Sequential create_value_head(int64_t in_dimensions, int64_t out_chann
     ));
 }
 
-
-ConvModel::ConvModel (const config::Config::NetworkConfig& config) {
+/*
+ConvModel::ConvModel (const config::config::NetworkConfig& config) {
     int64_t hidden_channels = config.num_hidden_channels;
     int64_t hidden_dim = config.num_hidden_dimensions;
     
@@ -66,3 +66,4 @@ std::tuple<torch::Tensor, torch::Tensor> ConvModel::forward(torch::Tensor x) {
     //Logger::log("Shape after value head: " + to_string(value.sizes()));
     return std::make_tuple(policy, value);
 }
+*/
