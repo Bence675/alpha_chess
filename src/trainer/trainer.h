@@ -14,8 +14,8 @@ public:
     Trainer(const config::Config& config);
 
     void train();
-    void play_game();
-    void self_play();
+    void play_game(int iteration, int game);
+    void self_play(int iteration);
     void load_model(const std::string& path);
     void save_model(const std::string& path);
     void set_model(std::shared_ptr<LCZero> model);

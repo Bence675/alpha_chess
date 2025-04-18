@@ -40,6 +40,7 @@ public:
     std::shared_ptr<node_t> select_best_leaf();
     void backpropagate(float value);
     chess::Move get_action() const;
+    float get_value() const;
     action_probs_t get_action_probs() const;
     torch::Tensor get_action_probs_tensor() const;
 

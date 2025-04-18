@@ -29,7 +29,7 @@ private:
     float c_puct;
 public:
     MCTS(std::shared_ptr<torch::nn::Module> model, const config::Config::MCTSConfig& config);
-    std::shared_ptr<node_t> search(const chess::Board& board);
+    std::shared_ptr<node_t> search(const chess::Board& board, int iteration = 0);
     void simulate(std::shared_ptr<node_t> root);
     std::vector<std::pair<chess::Move, float>> _compute_policy(node_t& node);
     void set_model(std::shared_ptr<torch::nn::Module> model);

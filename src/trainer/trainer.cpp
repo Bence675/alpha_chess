@@ -6,6 +6,7 @@
 #include "model.h"
 #include "string_utils.h"
 #include "thread_pool.h"
+#include "game_report.h"
 
 
 Trainer::Trainer(const config::Config& config) : config(config.trainer_config) {
@@ -63,7 +64,26 @@ Trainer::Trainer(const config::Config& config) : config(config.trainer_config) {
                     auto idx = utils::move_to_idx(move);
                     action_probs.push_back(std::make_pair(move, policy_tensor[i][idx].item<float>()));
                 }
-                
+
+                auto legal_action_probs = std::vector<float>();
+                for (auto move : legal_moves) {
+                    auto idx = utils::move_to_idx(move);
+                    legal_action_probs.push_back(policy_tensor[i][idx].item<float>());
+                }
+
+                auto valid_action_probs_tensor = torch::tensor(legal_action_probs)
+                    .view({1, static_cast<long>(legal_action_probs.size())})
+                    .to(torch::kCUDA);
+                auto action_probs_tensor = torch::nn::functional::softmax(
+                    valid_action_probs_tensor,
+                    torch::nn::functional::SoftmaxFuncOptions(1).dtype(torch::kFloat32)
+                );
+
+                for (int j = 0; j < action_probs.size(); j++) {
+                    action_probs[j].second = action_probs_tensor[0][j].item<float>();
+                }
+
+                Logger::log("Action probs for " + fen_without_fullmove + ": " + to_string(action_probs_tensor[0]));
                 
                 std::unique_lock<std::mutex> lock(memory::getInstance().action_probs_map_mutex);
                 
@@ -84,18 +104,20 @@ Trainer::Trainer(const config::Config& config) : config(config.trainer_config) {
     model_thread.detach();
 }
 
-void Trainer::self_play() {
+void Trainer::self_play(int iteration) {
     _self_playing = true;
     _dataset.clear();
+
     auto& trainer_config = config.self_play_config;
     ThreadPool pool(trainer_config.max_threads);
+    
 
     torch::Tensor data_memory;
     torch::Tensor target_memory;
     for (int i = 0; i < trainer_config.num_games_per_iteration; i++) {
         Logger::log("Game " + std::to_string(i));
-        pool.enqueue([this]() {
-            play_game();
+        pool.enqueue([this, iteration, i]() {
+            play_game(iteration, i);
         });
     }
 
@@ -104,20 +126,34 @@ void Trainer::self_play() {
     // save dataset
 }
 
-void Trainer::play_game() {
+void Trainer::play_game(int iteration, int game) {
     chess::Board board;
     _self_playing = false;
     std::vector<ChessData> history;
+    GameReport game_report;
     while (true) {
         Logger::log("Cache size: " + std::to_string(memory::getInstance().action_probs_map.size()));
         Logger::log("Current Board: " + board.getFen());
-        auto root = _mcts->search(board);
+        auto root = _mcts->search(board, iteration);
         // Logger::log("Search");
         auto action = root->get_action();
         // Logger::log("Action: " + to_string(action));
         
         history.push_back(ChessData{board.getFen(), root->get_action_probs_tensor(), torch::zeros({1})});
         board.makeMove(action);
+
+        // Report the move
+        MoveReport move_report;
+        move_report.fen = board.getFen();
+        move_report.move = to_string(action);
+        auto action_probs = root->get_action_probs();
+        for (auto& action_prob : action_probs) {
+            move_report.action_probs.push_back({to_string(action_prob.first), action_prob.second});
+        }
+
+        move_report.value = root->get_value();
+        game_report.moves.push_back(move_report);
+
         if (board.isGameOver().second != chess::GameResult::NONE) {
             torch::Tensor value_tensor;
             torch::Tensor policy_tensor;
@@ -152,6 +188,13 @@ void Trainer::play_game() {
         Logger::log("Game Over: Lose");
     }
     Logger::log("Game Over");
+
+    game_report.result = game_result.second == chess::GameResult::DRAW ? "1/2 - 1/2" : (board.sideToMove() == chess::Color::WHITE ? "0-1" : "1-0");
+    if (config.report_path.empty()) {
+        return;
+    }
+    game_report.save(config.report_path + "/game_report_" + std::to_string(iteration) + "_" + std::to_string(game) + ".json");
+
 }
 
 void Trainer::load_model(const std::string& path) {
@@ -184,10 +227,9 @@ void Trainer::train() {
     }
     int size = _dataset.size().value();
     auto indices = torch::randperm(size);
-    int batch_size = 4096;
     auto data_loader = torch::data::make_data_loader(
         std::move(_dataset),
-        torch::data::DataLoaderOptions().batch_size(batch_size).workers(1)
+        torch::data::DataLoaderOptions().batch_size(trainer_config.batch_size).workers(1)
     );
 
     int sum_policy_loss = 0;
@@ -197,23 +239,22 @@ void Trainer::train() {
         int batch_count = 0;
         for (auto& batch : *data_loader) {
             batch_count++;
+            
             torch::Tensor input, policy_target, value_target;
             input = batch.input.to(torch::kCUDA);
             policy_target = batch.policy.to(torch::kCUDA);
-            // Change 0 in policy_target to -100 for invalid moves
-            auto policy_target_mask = policy_target != 0;
-            policy_target.masked_fill_(policy_target_mask, -100);
-
             value_target = batch.value.view({-1}).to(torch::kCUDA);
-            // Logger::log("Input shape: " + to_string(input.sizes()));
-            // Logger::log("Policy target shape: " + to_string(policy_target.sizes()));
-            // Logger::log("Value target shape: " + to_string(value_target.sizes()));
+
             auto output = _model->forward(input);
-            auto policy_output = std::get<0>(output);
-            auto value_output = std::get<1>(output).view({-1});
-            // Logger::log("Policy output shape: " + to_string(policy_output.sizes()));
-            // Logger::log("Value output shape: " + to_string(value_output.sizes()));
-            auto policy_loss = torch::nn::functional::cross_entropy(policy_output, policy_target);
+            auto policy_output = std::get<0>(output).to(torch::kCUDA);
+            auto value_output = std::get<1>(output).to(torch::kCUDA).view({-1});
+
+            auto log_probs = torch::log_softmax(policy_output, 1);
+            
+            
+            auto criterion = torch::nn::KLDivLoss(torch::nn::KLDivLossOptions(torch::kBatchMean));
+            auto policy_loss = criterion(log_probs, policy_target);
+
             auto value_loss = torch::nn::functional::mse_loss(value_output, value_target);
             auto loss = policy_loss + value_loss;
             _model->zero_grad();

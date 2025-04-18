@@ -18,6 +18,16 @@ args parse_args(int argc, char *argv[]) {
                 Logger::log("Error: --config option requires an argument.");
                 parsed_args.help = true;
             }
+        } else if (arg == "--report_output" || arg == "-r") {
+            if (i + 1 < argc) {
+                parsed_args.report_output = argv[++i];
+            } else {
+                Logger::log("Error: --report_output option requires an argument.");
+                parsed_args.help = true;
+            }
+        } else {
+            Logger::log("Error: Unknown argument " + arg);
+            parsed_args.help = true;
         }
     }
     return parsed_args;
@@ -25,8 +35,8 @@ args parse_args(int argc, char *argv[]) {
 void print_help() {
     Logger::log("Usage: program [options]");
     Logger::log("Options:");
-    Logger::log("  --help, -h       Show this help message and exit");
-    Logger::log("  --config, -c     Specify the configuration file");
+    Logger::log("  --help,             -h    Show this help message and exit");
+    Logger::log("  --config,           -c    Specify the configuration file");
 }
 
 } // namespace args

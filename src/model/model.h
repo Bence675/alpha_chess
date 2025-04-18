@@ -183,7 +183,10 @@ class LCZero : public torch::nn::Module {
             auto policy = _policy_head->forward(x);
             auto value = _value_head->forward(x);
 
-            policy = torch::nn::functional::log_softmax(policy, 1);
+            /*policy = torch::nn::functional::softmax(
+                policy,
+                torch::nn::functional::SoftmaxFuncOptions(1).dtype(torch::kFloat32)
+            );*/
             value = torch::tanh(value);
             return std::make_tuple(policy, value);
         }

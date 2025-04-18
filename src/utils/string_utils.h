@@ -9,10 +9,19 @@
 #define STRING_UTILS_H
 
 inline std::string to_string(const torch::Tensor& tensor) {
+    if (tensor.dim() == 0) {
+        return std::to_string(tensor.item<float>());
+    }
     std::string res = "[";
-    for (int i = 0; i < tensor.sizes().size(); ++i) {
-        res += std::to_string(tensor.sizes()[i]);
-        if (i < tensor.sizes().size() - 1) {
+    for (int i = 0; i < tensor.size(0); ++i) {
+        res += to_string(tensor[i]);
+        if (i < tensor.size(0) - 1) {
+            if (tensor.dim() > 1) {
+                res += "\n";
+                for (int j = 0; j < tensor.dim() - 1; ++j) {
+                    res += "\t";
+                }
+            }
             res += ", ";
         }
     }

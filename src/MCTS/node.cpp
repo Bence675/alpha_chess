@@ -185,3 +185,7 @@ torch::Tensor node_t::get_action_probs_tensor() const {
     }
     return action_probs_tensor;
 }
+
+float node_t::get_value() const {
+    return this->value;
+}

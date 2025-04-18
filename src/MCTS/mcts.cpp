@@ -14,12 +14,12 @@ MCTS::MCTS(std::shared_ptr<torch::nn::Module> model, const config::Config::MCTSC
     this->c_puct = config.exploration_constant;
 }
 
-std::shared_ptr<node_t> MCTS::search(const chess::Board& board)
+std::shared_ptr<node_t> MCTS::search(const chess::Board& board, int iteration)
 {
     chess::Board board_copy = chess::Board(board); 
     auto root = std::make_shared<node_t>(board_copy, this->model);
 
-    for (unsigned int i = 0; i < this->num_simulations; ++i) {
+    for (unsigned int i = 0; i < iteration * this->num_simulations; ++i) {
         // Logger::log("Simulation " + std::to_string(i));
         root->board = chess::Board(board);
         auto game_result = root->board.isGameOver(); // DRAW, LOSE, NONE

@@ -1,6 +1,8 @@
 
 #include <nlohmann/json.hpp>
+#include <chrono>
 #include <fstream>
+#include <filesystem>
 
 #ifndef CONFIG_H
 #define CONFIG_H
@@ -47,6 +49,8 @@ struct Config {
     };
     
     struct TrainerConfig {
+
+        std::string report_path = "";
     
         struct SelfPlayConfig {
             int num_iterations = 1000;
@@ -80,12 +84,19 @@ struct Config {
             if (json_config.contains("training")) {
                 training_config.load_config(json_config["training"]);
             }
+            report_path = lookup(json_config, "report_path", report_path);
+            if (!report_path.empty()) {
+                auto current_time = std::chrono::system_clock::now();
+                report_path = report_path + "/" + std::to_string(std::chrono::duration_cast<std::chrono::seconds>(current_time.time_since_epoch()).count());
+                std::filesystem::create_directories(report_path);
+            }
         }
     };
 
     MCTSConfig mcts_config;
     TrainerConfig trainer_config;
     NetworkConfig network_config;
+    bool skip_first_self_play = false;
 };
 
 Config load_config(const std::string& config_file);

@@ -9,6 +9,7 @@ namespace args {
 struct args {
     bool help = false;
     std::string config_file = "";
+    std::string report_output = "";
 };
 
 args parse_args(int argc, char *argv[]);

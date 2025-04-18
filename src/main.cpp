@@ -17,12 +17,14 @@ int main(int argc, char *argv[]) {
     auto config = config::load_config(args.config_file);
 
     Trainer trainer(config);
-    for (int i = 0; i < 100; i++) {
+    for (int i = 1; i <= 100; i++) {
         Logger::log("Iteration " + std::to_string(i));
         memory::clear();
-        trainer.self_play();
-        trainer.save_dataset("dataset");
-        // trainer.load_dataset("dataset");
+        trainer.self_play(i);
+        trainer.save_dataset("dataset1");
+        
+        trainer.load_dataset("dataset1");
+        trainer.self_play(i);
         trainer.train();
     }
     // trainer.train();

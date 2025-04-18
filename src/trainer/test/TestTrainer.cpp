@@ -10,7 +10,7 @@ TEST(TestTrainer, TestPlayGame) {
     Config config;
     config.mcts_config.num_simulations = 10;
     Trainer trainer(config);
-    trainer.play_game();
+    trainer.play_game(0, 0);
 }
 
 TEST(TestTrainer, TestSelfPlay) {
@@ -19,5 +19,5 @@ TEST(TestTrainer, TestSelfPlay) {
 
     config.mcts_config.num_simulations = 100;
     Trainer trainer(config);
-    trainer.self_play();
+    trainer.self_play(0);
 }

@@ -11,8 +11,9 @@
         },
         "training": {
             "num_epochs": 10,
-            "batch_size": 256
-        }
+            "batch_size": 512
+        },
+        "report_path": "../reports"
     },
     "network": {
         "num_layers": 20,
@@ -20,5 +21,6 @@
         "policy_head_filters": 256,
         "value_head_filters": 256,
         "reduction_ratio": 16
-    }
+    },
+    "skip_first_self_play": false
 }
