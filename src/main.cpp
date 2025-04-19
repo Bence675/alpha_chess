@@ -20,11 +20,14 @@ int main(int argc, char *argv[]) {
     for (int i = 1; i <= 100; i++) {
         Logger::log("Iteration " + std::to_string(i));
         memory::clear();
-        trainer.self_play(i);
-        trainer.save_dataset("dataset1");
-        
+        Logger::log("skip first self play: " + std::to_string(config.skip_first_self_play));
+        if (i != 1 || !config.skip_first_self_play) {
+            trainer.self_play(i);
+            trainer.save_dataset("dataset1");
+        } else {
+            Logger::log("Skipping self play");
+        }
         trainer.load_dataset("dataset1");
-        trainer.self_play(i);
         trainer.train();
     }
     // trainer.train();

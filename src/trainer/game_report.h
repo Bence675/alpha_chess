@@ -5,14 +5,20 @@
 
 using json = nlohmann::json;
 
-struct ActionProb {
+struct Child {
     std::string action;
     float prob;
+    float value;
+    int visit_count;
+    float prior;
 
     json to_json() const {
         json j;
         j["action"] = action;
         j["prob"] = prob;
+        j["value"] = value;
+        j["visit_count"] = visit_count;
+        j["prior"] = prior;
         return j;
     }
 };
@@ -20,16 +26,16 @@ struct ActionProb {
 struct MoveReport {
     std::string fen;
     std::string move;
-    std::vector<ActionProb> action_probs;
+    std::vector<Child> children;
     float value;
 
     json to_json() const {
         json j;
         j["fen"] = fen;
         j["move"] = move;
-        j["action_probs"] = json::array();
-        for (const auto& action_prob : action_probs) {
-            j["action_probs"].push_back(action_prob.to_json());
+        j["children"] = json::array();
+        for (const auto& child : children) {
+            j["children"].push_back(child.to_json());
         }
         j["value"] = value;
         return j;

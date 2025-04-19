@@ -43,6 +43,9 @@ public:
     float get_value() const;
     action_probs_t get_action_probs() const;
     torch::Tensor get_action_probs_tensor() const;
+    std::vector<std::shared_ptr<node_t>> get_children() const;
+    float get_prior() const { return prior; }
+    int get_visit_count() const { return visit_count; }
 
     chess::Board& board;
     std::shared_ptr<torch::nn::Module> model;

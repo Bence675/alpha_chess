@@ -83,9 +83,9 @@ float node_t::expand() {
         throw std::runtime_error("Node already expanded");
     }
     if (this->board.isGameOver().second != chess::GameResult::NONE) {
-        return 1 ? this->board.isGameOver().second == chess::GameResult::WIN :
-              -1 ? this->board.isGameOver().second == chess::GameResult::LOSE : 
-               0; 
+        // Logger::log("expand see game over");
+        return this->board.isGameOver().second == chess::GameResult::WIN ? 1.0 : 
+               this->board.isGameOver().second == chess::GameResult::DRAW ? 0.0 : -1.0;
     }
     // TODO wrap the output of board_to_tensor with a torch layer
     auto state_tensor = utils::board_to_tensor(this->board);
@@ -115,11 +115,10 @@ float node_t::expand() {
                     memory_instance.boards_to_compute.push_back(fen_without_fullmove);
             } 
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(10)); // maybe need more times
+        std::this_thread::sleep_for(std::chrono::milliseconds(5)); // maybe need more times
     }
-
     auto action_probs = memory_instance.action_probs_map[fen_without_fullmove].first;
-    int sum = 0;
+    float sum = 0;
     for (auto& action_prob : action_probs) {
         sum += action_prob.second;
     }
@@ -161,9 +160,11 @@ void node_t::backpropagate(float value) {
 }
 
 chess::Move node_t::get_action() const {
-    std::vector<float> action_probs(this->children.size());
-    for (size_t i = 0; i < this->children.size(); ++i) {
-        action_probs[i] = this->children[i]->prior;
+    auto action_probs_raw = get_action_probs();
+    std::vector<float> action_probs;
+
+    for (int i = 0; i < action_probs_raw.size(); ++i) {
+        action_probs.push_back(action_probs_raw[i].second);
     }
 
     return this->children[utils::random_choose(action_probs)]->move;
@@ -188,4 +189,8 @@ torch::Tensor node_t::get_action_probs_tensor() const {
 
 float node_t::get_value() const {
     return this->value;
+}
+
+std::vector<std::shared_ptr<node_t>> node_t::get_children() const {
+    return std::move(children);
 }

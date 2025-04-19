@@ -6,6 +6,7 @@
 #include <chess/chess.hpp>
 #include <logger.h>
 #include <board_utils.h>
+#include <string_utils.h>
 
 
 MCTS::MCTS(std::shared_ptr<torch::nn::Module> model, const config::Config::MCTSConfig& config){
@@ -18,7 +19,6 @@ std::shared_ptr<node_t> MCTS::search(const chess::Board& board, int iteration)
 {
     chess::Board board_copy = chess::Board(board); 
     auto root = std::make_shared<node_t>(board_copy, this->model);
-
     for (unsigned int i = 0; i < iteration * this->num_simulations; ++i) {
         // Logger::log("Simulation " + std::to_string(i));
         root->board = chess::Board(board);
@@ -39,8 +39,10 @@ void MCTS::simulate(std::shared_ptr<node_t> root) {
     }
     auto node = root->select_best_leaf();
     auto value = node->expand();
+    // Logger::log("Value to backpropagate: " + to_string(value));
+    // Logger::log("Value before backpropagate: " + to_string(root->value));
     node->backpropagate(value);
-    // return std::make_shared<HistoryObject>(utils::board_to_tensor(root->board), torch::zeros({1, 8, 8}), 0.0, chess::GameResult::NONE);
+    // Logger::log("Value after backpropagate: " + to_string(root->value));
 }
 
 void MCTS::set_model(std::shared_ptr<torch::nn::Module> model)

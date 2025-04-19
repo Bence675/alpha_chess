@@ -23,7 +23,7 @@ Trainer::Trainer(const config::Config& config) : config(config.trainer_config) {
 
     model_thread = std::thread([this]() {
         while (true) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             // if (!_self_playing) {
             //     Logger::log("Waiting forself play");
              //    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -39,20 +39,26 @@ Trainer::Trainer(const config::Config& config) : config(config.trainer_config) {
                 memory::getInstance().processing = memory::getInstance().boards_to_compute;
                 // Logger::log("Processing " + std::to_string(memory::getInstance().processing.size()) + " boards");
                 input_tensor = torch::zeros({static_cast<long>(memory::getInstance().boards_to_compute.size()), 19, 8, 8});
+                // Logger::log("Transforming boards to tensor");
                 for (int i = 0; i < memory::getInstance().boards_to_compute.size(); i++) {
                     auto board = chess::Board(memory::getInstance().boards_to_compute[i]);
                     input_tensor[i] = utils::board_to_tensor(board);
                 }
+                // Logger::log("Tensor created");
                 memory::getInstance().boards_to_compute.clear();
             }
             if (input_tensor.sizes()[0] == 0) {
                 Logger::log("No boards to compute");
                 continue;
             }
-            Logger::log("Computing action probabilities for " + std::to_string(input_tensor.sizes()[0]) + " boards");
+            // Logger::log("Computing action probabilities for " + std::to_string(input_tensor.sizes()[0]) + " boards");
             auto output = _model->forward(input_tensor);
             auto policy_tensor = std::get<0>(output).to(torch::kCPU);
             auto value_tensor = std::get<1>(output).to(torch::kCPU);
+
+            // Logger::log("Model called");
+
+            auto tmp_action_probs_map = std::unordered_map<std::string, std::pair<node_t::action_probs_t, float>>();
 
             for (int i = 0; i < memory::getInstance().processing.size(); i++) {
                 auto fen_without_fullmove = memory::getInstance().processing[i];
@@ -60,6 +66,7 @@ Trainer::Trainer(const config::Config& config) : config(config.trainer_config) {
                 auto action_probs = std::vector<std::pair<chess::Move, float>>();
                 auto legal_moves = chess::Movelist();
                 chess::movegen::legalmoves(legal_moves, board);
+
                 for (auto move : legal_moves) {
                     auto idx = utils::move_to_idx(move);
                     action_probs.push_back(std::make_pair(move, policy_tensor[i][idx].item<float>()));
@@ -72,8 +79,7 @@ Trainer::Trainer(const config::Config& config) : config(config.trainer_config) {
                 }
 
                 auto valid_action_probs_tensor = torch::tensor(legal_action_probs)
-                    .view({1, static_cast<long>(legal_action_probs.size())})
-                    .to(torch::kCUDA);
+                    .view({1, static_cast<long>(legal_action_probs.size())});
                 auto action_probs_tensor = torch::nn::functional::softmax(
                     valid_action_probs_tensor,
                     torch::nn::functional::SoftmaxFuncOptions(1).dtype(torch::kFloat32)
@@ -82,12 +88,18 @@ Trainer::Trainer(const config::Config& config) : config(config.trainer_config) {
                 for (int j = 0; j < action_probs.size(); j++) {
                     action_probs[j].second = action_probs_tensor[0][j].item<float>();
                 }
+                tmp_action_probs_map[fen_without_fullmove] = std::make_pair(std::move(action_probs), value_tensor[i].item<float>());
+            }
+            // Logger::log("Between");
 
-                Logger::log("Action probs for " + fen_without_fullmove + ": " + to_string(action_probs_tensor[0]));
-                
+            {   
+                // Logger::log("Waiting for action_probs_map_mutex");
                 std::unique_lock<std::mutex> lock(memory::getInstance().action_probs_map_mutex);
-                
-                memory::getInstance().action_probs_map[fen_without_fullmove] = std::make_pair(action_probs, value_tensor[i].item<float>());
+                // Logger::log("Muterx locked");
+                for (auto& item : tmp_action_probs_map) {
+                    memory::getInstance().action_probs_map[item.first] = item.second;
+                }
+                // Logger::log("Mutex unlocked");
             }
 
             /*{
@@ -96,8 +108,10 @@ Trainer::Trainer(const config::Config& config) : config(config.trainer_config) {
             }*/
 
             {
+                // Logger::log("Waiting for boards_to_compute_and_processing_mutex");
                 std::unique_lock<std::mutex> lock(memory::getInstance().boards_to_compute_and_processing_mutex);
                 memory::getInstance().processing.clear();
+                // Logger::log("Processing cleared");
             }
         }
     });
@@ -140,37 +154,40 @@ void Trainer::play_game(int iteration, int game) {
         // Logger::log("Action: " + to_string(action));
         
         history.push_back(ChessData{board.getFen(), root->get_action_probs_tensor(), torch::zeros({1})});
+        
+        MoveReport move_report;
+        move_report.fen = board.getFen();
+        
         board.makeMove(action);
 
         // Report the move
-        MoveReport move_report;
-        move_report.fen = board.getFen();
         move_report.move = to_string(action);
         auto action_probs = root->get_action_probs();
-        for (auto& action_prob : action_probs) {
-            move_report.action_probs.push_back({to_string(action_prob.first), action_prob.second});
+        auto children = root->get_children();
+        for (int i = 0; i <action_probs.size(); ++i) {
+            move_report.children.push_back({to_string(action_probs[i].first), action_probs[i].second, children[i]->get_value(), children[i]->get_visit_count(), children[i]->get_prior()});
         }
 
         move_report.value = root->get_value();
         game_report.moves.push_back(move_report);
 
         if (board.isGameOver().second != chess::GameResult::NONE) {
-            torch::Tensor value_tensor;
-            torch::Tensor policy_tensor;
-            torch::Tensor target_tensor;
-            auto game_result = board.isGameOver();
-            int result = 0;
-            if (game_result.second == chess::GameResult::WIN) {
-                result = 1;
-            } else if (game_result.second == chess::GameResult::DRAW) {
-                result = 0;
+            float result = 0;
+            if (board.isGameOver().second != chess::GameResult::DRAW) {
+                result = (board.isGameOver().second == chess::GameResult::LOSE) == 
+                         (board.sideToMove() == chess::Color::BLACK) ? 1 : -1;   // if true white wins
+            }
+
+            if (result == 1) {
+                Logger::log("White won");
+            } else if (result == -1) {
+                Logger::log("Black won");
             } else {
-                result = -1;
+                Logger::log("Draw");
             }
 
             for (auto& item : history) {
                 item.value += result;
-
                 result = -result;
             }
             
@@ -180,15 +197,6 @@ void Trainer::play_game(int iteration, int game) {
 
     _dataset.add_data(history);
     auto game_result = board.isGameOver();
-    if (game_result.second == chess::GameResult::WIN) {
-        Logger::log("Game Over: Win");
-    } else if (game_result.second == chess::GameResult::DRAW) {
-        Logger::log("Game Over: Draw");
-    } else {
-        Logger::log("Game Over: Lose");
-    }
-    Logger::log("Game Over");
-
     game_report.result = game_result.second == chess::GameResult::DRAW ? "1/2 - 1/2" : (board.sideToMove() == chess::Color::WHITE ? "0-1" : "1-0");
     if (config.report_path.empty()) {
         return;

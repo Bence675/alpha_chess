@@ -8,6 +8,33 @@
 #ifndef STRING_UTILS_H
 #define STRING_UTILS_H
 
+
+inline std::string to_string(const int& x) {
+    return std::to_string(x);
+}
+
+inline std::string to_string(const float& x) {
+    return std::to_string(x);
+}
+
+inline std::string to_string(const double& x) {
+    return std::to_string(x);
+}
+
+inline std::string to_string(const chess::Square& square) {
+    return std::string(square.file()) + std::to_string(square.rank() + 1);
+}
+
+inline std::string to_string(const chess::Move& move) {
+    return "Move(" + to_string(move.from()) + " -> " + to_string(move.to()) + ")";
+}
+
+
+template <typename First, typename Second>
+inline std::string to_string(const std::pair<First, Second>& pair) {
+    return "std::pair(" + to_string(pair.first) + ", " + to_string(pair.second) + ")";
+}
+
 inline std::string to_string(const torch::Tensor& tensor) {
     if (tensor.dim() == 0) {
         return std::to_string(tensor.item<float>());
@@ -33,7 +60,7 @@ template <class T>
 std::string to_string(const std::vector<T>& vec) {
     std::string res = "[";
     for (int i = 0; i < vec.size(); ++i) {
-        res += std::to_string(vec[i]);
+        res += to_string(vec[i]);
         if (i < vec.size() - 1) {
             res += ", ";
         }
@@ -44,18 +71,6 @@ std::string to_string(const std::vector<T>& vec) {
 
 inline std::string to_string(const char* str) {
     return std::string(str);
-}
-
-inline std::string to_string(const int& x) {
-    return std::to_string(x);
-}
-
-inline std::string to_string(const float& x) {
-    return std::to_string(x);
-}
-
-inline std::string to_string(const double& x) {
-    return std::to_string(x);
 }
 
 inline std::string to_string(const std::string& str) {
@@ -97,11 +112,6 @@ inline std::string to_string(const node_t& node, int tab_count = 0) {
     }
     return res;
 }
-
-inline std::string to_string(const chess::Move& move) {
-    return std::string(move.from()) + " " + std::string(move.to());
-}
-
 // Split like python
 inline std::vector<std::string> split(std::string str, const std::string& delimiter) {
     std::vector<std::string> tokens;
